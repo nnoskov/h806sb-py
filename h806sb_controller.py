@@ -3,7 +3,7 @@ import socket
 import logging
 from services.discovery import LedDiscoveryService
 
-# loging
+# logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("H806SB")
 
@@ -16,42 +16,42 @@ class LedController:
         
         # base packet
         self.packet = bytearray([
-            0xFB, 0xC1,              # Управляющие байты
-            0x00,                    # Счетчик команд (будет увеличиваться)
-            0x50,                    # Скорость (по умолчанию 80)
-            0x00,                    # Яркость (по умолчанию 0)
+            0xFB, 0xC1,              # Command bytes
+            0x00,                    # Counter (will be increased)
+            0x50,                    # Speed (by default 80)
+            0x00,                    # Brightness (by default 0)
             0x01,                    # Single file playback
-            0x00, 0xAE,              # Unknown байты
-            0x00, 0x00, 0x00, 0x00,  # Константные значения
-            0x00, 0x00, 0x00, 0x00   # Серийный номер (заполнится при обнаружении)
+            0x00, 0xAE,              # Unknown bytes
+            0x00, 0x00, 0x00, 0x00,  # Constants as serial number
+            0x00, 0x00, 0x00, 0x00   # Serial number (will be filling after discovery)
         ])
 
     async def send_command(self):
-        """Отправка текущего состояния пакета на устройство."""
-        self.packet[2] = (self.packet[2] + 1) % 256  # Увеличиваем счетчик команд
+        """Update packet values and sending to device."""
+        self.packet[2] = (self.packet[2] + 1) % 256  # increments of counter
         self._udp_socket.sendto(self.packet, self._broadcast_addr)
         logger.debug(f"Sent packet: {self.packet.hex(' ')}")
 
     async def set_speed(self, speed: int):
-        """Установка скорости (1-100)."""
+        """Set speed (1-100)."""
         speed = max(1, min(100, speed))
         self.packet[3] = speed
         await self.send_command()
 
     async def set_brightness(self, brightness: int):
-        """Установка яркости (0-31)."""
+        """Set brightness (0-31)."""
         brightness = max(0, min(31, brightness))
         self.packet[4] = brightness
         await self.send_command()
 
     async def set_single_file(self, mode: int):
-        """Установка режима single file (0 или 1)."""
+        """Set mode single file (0 or 1)."""
         mode = 1 if mode else 0
         self.packet[5] = mode
         await self.send_command()
 
     def has_serial_number(self) -> bool:
-        """Проверяем, установлен ли серийный номер."""
+        """Checking the installation of the serial number after detection."""
         return any(self.packet[12:16])
 
     def close(self):
